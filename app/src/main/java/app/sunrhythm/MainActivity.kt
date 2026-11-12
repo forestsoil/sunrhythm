@@ -65,8 +65,12 @@ class MainActivity : Activity() {
             addView(on); addView(saveBtn); addView(planText)
         }
         setContentView(ScrollView(this).apply { addView(col) })
-        if (Build.VERSION.SDK_INT >= 33)
+        val sp = getSharedPreferences("s", MODE_PRIVATE)
+        if (Build.VERSION.SDK_INT >= 33 && !sp.getBoolean("asked", false) &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            sp.edit().putBoolean("asked", true).apply()
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+        }
         Notifier.channels(this)
         Scheduler.schedule(this)
         refresh()
