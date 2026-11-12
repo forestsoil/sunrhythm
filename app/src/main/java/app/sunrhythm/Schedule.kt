@@ -59,11 +59,15 @@ object Scheduler {
         am.cancel(pending(c, null))
         val s = Settings.load(c)
         if (!s.enabled) return
-        val e = Schedule.next(s, after) ?: return
+        val ev = Schedule.next(s, after) ?: return
         val show = PendingIntent.getActivity(
             c, 0, Intent(c, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE
         )
         // setAlarmClock: exact, Doze-exempt, needs no special permission.
-        am.setAlarmClock(AlarmManager.AlarmClockInfo(e.at, show), pending(c, e))
+        try {
+            am.setAlarmClock(AlarmManager.AlarmClockInfo(ev.at, show), pending(c, ev))
+        } catch (x: SecurityException) {
+            am.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, ev.at, pending(c, ev))
+        }
     }
 }

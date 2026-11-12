@@ -65,15 +65,15 @@ class MainActivity : Activity() {
             addView(on); addView(saveBtn); addView(planText)
         }
         setContentView(ScrollView(this).apply { addView(col) })
-        val sp = getSharedPreferences("s", MODE_PRIVATE)
-        if (Build.VERSION.SDK_INT >= 33 && !sp.getBoolean("asked", false) &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            sp.edit().putBoolean("asked", true).apply()
+        if (Build.VERSION.SDK_INT >= 33)
             requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
+        safe { Notifier.channels(this); Scheduler.schedule(this); refresh() }
+    }
+
+    private fun safe(f: () -> Unit) {
+        try { f() } catch (e: Throwable) {
+            planText.text = "ERROR:\n" + android.util.Log.getStackTraceString(e).take(1800)
         }
-        Notifier.channels(this)
-        Scheduler.schedule(this)
-        refresh()
     }
 
     private fun clamp(f: EditText, def: Int, lo: Int, hi: Int): Int {
@@ -87,7 +87,7 @@ class MainActivity : Activity() {
             walkBefore = clamp(walkIn, 15, 0, 99), walkReq = clamp(reqIn, 5, 5, 15),
             enabled = on.isChecked
         )
-        s.save(this); Scheduler.schedule(this); refresh()
+        s.save(this); safe { Scheduler.schedule(this); refresh() }
     }
 
     private fun getLocation() {
@@ -111,7 +111,7 @@ class MainActivity : Activity() {
     private fun applyLocation(l: Location?) {
         if (l == null) { Toast.makeText(this, "No location. Turn on Location and retry.", Toast.LENGTH_LONG).show(); refresh(); return }
         s = s.copy(lat = l.latitude, lon = l.longitude)
-        s.save(this); Scheduler.schedule(this); refresh()
+        s.save(this); safe { Scheduler.schedule(this); refresh() }
     }
 
     override fun onRequestPermissionsResult(code: Int, p: Array<out String>, r: IntArray) {
